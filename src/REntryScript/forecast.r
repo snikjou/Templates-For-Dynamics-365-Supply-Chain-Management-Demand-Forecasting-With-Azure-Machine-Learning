@@ -116,14 +116,14 @@ modelArima <- function(historicalData, forecastHorizon, confidenceLevel, forceSe
     }))
 }
 
-modelEts <- function(historicalData, forecastHorizon, confidenceLevel, forceSeasonality,etsAlpha) {
+modelEts <- function(historicalData, forecastHorizon, confidenceLevel, forceSeasonality) {
     return(tryCatch({
         # model = 3 characters: Z means automatically selected
         # 1st letter is error type, 2nd letter is trend type, 3rd letter is season type.
         force_seasonality_model_map <- c("ZZZ", "ZZA", "ZZM", "ZZN")
         names(force_seasonality_model_map) <- c(FORCE_SEASONALITY_AUTO, FORCE_SEASONALITY_ADDITIVE, FORCE_SEASONALITY_MULTIPLICATIVE, FORCE_SEASONALITY_NONE)
 
-        ets_model <- ets(historicalData, model = force_seasonality_model_map[forceSeasonality], alpha - etsAlpha)
+        ets_model <- ets(historicalData, model = force_seasonality_model_map[forceSeasonality])
         fcast <- forecast(ets_model, h = forecastHorizon, level = c(confidenceLevel))
 
         mean_ets <- as.numeric(fcast$mean)
@@ -190,7 +190,7 @@ addToOutput <- function(vars_data_frame, granularity_attribute, date_key, transa
     return(rbind(vars_data_frame, new_data_frame));
 }
 
-trainModels <- function(timeSeriesModel, historicalData, forecastHorizon, confidenceLevel, seasonality, forceSeasonality,etsAlpha) {
+trainModels <- function(timeSeriesModel, historicalData, forecastHorizon, confidenceLevel, seasonality, forceSeasonality) {
     result = list()
 
     #ARIMA	
@@ -204,7 +204,7 @@ trainModels <- function(timeSeriesModel, historicalData, forecastHorizon, confid
 
     #ETS	
     if (timeSeriesModel == TIME_SERIES_MODEL_ETS || timeSeriesModel == TIME_SERIES_MODEL_ETS_ARIMA || timeSeriesModel == TIME_SERIES_MODEL_ETS_STL || timeSeriesModel == TIME_SERIES_MODEL_ALL) {
-        etsForecast <- modelEts(historicalData, forecastHorizon, confidenceLevel, forceSeasonality,etsAlpha)
+        etsForecast <- modelEts(historicalData, forecastHorizon, confidenceLevel, forceSeasonality)
 
         if (timeSeriesModel == TIME_SERIES_MODEL_ETS || timeSeriesModel == TIME_SERIES_MODEL_ALL) {
             result[[TIME_SERIES_MODEL_ETS]] <- etsForecast
@@ -382,12 +382,7 @@ entry_script$run <- function(minibatch) {
         stop(paste("Parameter value of FORCE_SEASONALITY does not represent any known seasonality option."))
     }
 
-    #EtsAlpha
-    if (is.null(datasetParameters$ETS_ALPHA)) {
-        etsAlpha <- datasetParameters$ETS_ALPHA;
-    } else {
-        etsAlpha <- NULL;
-    }
+
     ################### END PARAMETERS INIT ###################
 
     output <- data.frame(
@@ -437,7 +432,7 @@ entry_script$run <- function(minibatch) {
 
             train_data_ts <- ts(train_data, frequency = seasonality);
 
-            result <- trainModels(timeSeriesModel, train_data_ts, forecastHorizon = test_size, confidenceLevel = confidenceLevel, seasonality, forceSeasonality,etsAlpha)
+            result <- trainModels(timeSeriesModel, train_data_ts, forecastHorizon = test_size, confidenceLevel = confidenceLevel, seasonality, forceSeasonality)
 
             #Calculate accuracy metrics
 
@@ -459,11 +454,11 @@ entry_script$run <- function(minibatch) {
             #if for some reason there is still Inf, replace it with -1 that means mape can not be calculated
             result_mape[is.infinite(result_mape)] <- -1
 
-            result <- trainModels(resultTimeSeriesModel, full_data_ts, full_data_horizon_offset, confidenceLevel, seasonality, forceSeasonality,etsAlpha)
+            result <- trainModels(resultTimeSeriesModel, full_data_ts, full_data_horizon_offset, confidenceLevel, seasonality, forceSeasonality)
         }
         else {
             #There is no data in the test set so the model will be chosen based on how well it fits historical data
-            result <- trainModels(timeSeriesModel, full_data_ts, full_data_horizon_offset, confidenceLevel, seasonality, forceSeasonality,etsAlpha)
+            result <- trainModels(timeSeriesModel, full_data_ts, full_data_horizon_offset, confidenceLevel, seasonality, forceSeasonality)
 
             #Mape cannot be calculated when there are zeros in the data
             full_data_na <- replace(full_data, full_data == 0, NaN)
