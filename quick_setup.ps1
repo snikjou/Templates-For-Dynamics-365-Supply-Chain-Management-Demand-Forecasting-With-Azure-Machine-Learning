@@ -3,6 +3,7 @@
     This script has the following dependencies:
        * a pre-installed Azure CLI (not the PowerShell one).
        * a pre-installed ML extension azure-cli-ml.
+       * az extension add --name azure-cli-ml
     
     Creates Azure resources required by demand forecast logic for FinOps.
     * Creates a resource group.
@@ -177,8 +178,8 @@ function Create-Workspace() {
 }
 
 function Create-ComputeInstance() {
-    $computeInstance_Name = "notebookScryptExecutor"
-    $computeInstance_vm_size = "Standard_D3_v2"
+    $computeInstance_Name = "notebookScryptExecutor5"
+    $computeInstance_vm_size = "Standard_D2_v2"
 
     # create workspace compute instance
     Write-Host "Creating an ML workspace compute instance ..."
@@ -193,8 +194,8 @@ function Create-ComputeInstance() {
 
 function Create-ComputeCluster() {
     $computeCluster_min_nodes = 0
-    $computeCluster_max_nodes = 6 
-    $computeCluster_vm_size = "STANDARD_DS3_V2"
+    $computeCluster_max_nodes = 2 
+    $computeCluster_vm_size = "STANDARD_DS2_V2"
 
     # create workspace compute cluster
     Write-Host "Creating an ML workspace compute cluster ..."
